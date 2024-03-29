@@ -52,7 +52,7 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
                 .entrySet()
                 .stream()
                 .map(entry -> new JoinExecutorWithLevel(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(i -> i.level))
+                .sorted(Comparator.comparing(JoinExecutorWithLevel::getLevel))
                 .collect(Collectors.toList());
     }
 
@@ -63,7 +63,7 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
                 .entrySet()
                 .stream()
                 .map(entry -> new AfterJoinExecutorWithLevel(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(i -> i.level))
+                .sorted(Comparator.comparing(AfterJoinExecutorWithLevel::getLevel))
                 .collect(Collectors.toList());
     }
 

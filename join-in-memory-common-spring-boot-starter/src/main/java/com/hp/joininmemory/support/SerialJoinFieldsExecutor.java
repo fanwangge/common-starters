@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StopWatch;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -25,6 +26,8 @@ public class SerialJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor<D
     @Override
     public void execute(Collection<DATA> dataList) {
         getJoinFieldExecutors()
+                .stream()
+                .sorted(Comparator.comparing(JoinFieldExecutor::runOnLevel))
                 .forEach(executor -> {
                     if (log.isDebugEnabled()) {
                         StopWatch stopwatch = new StopWatch("Starting executing join tasks");
@@ -37,22 +40,19 @@ public class SerialJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor<D
                     }
                 });
 
+        final List<AfterJoinMethodExecutor<DATA>> afterJoinMethodExecutors = getAfterJoinMethodExecutors()
+                .stream()
+                .sorted(Comparator.comparing(AfterJoinMethodExecutor::runOnLevel))
+                .toList();
+
         if (log.isDebugEnabled()) {
             StopWatch stopwatch = new StopWatch("Starting executing after join tasks");
             stopwatch.start();
-            dataList.forEach(data ->
-                    getAfterJoinMethodExecutors()
-                            .forEach(
-                                    e -> e.execute(data)
-                            )
-            );
+            dataList.forEach(data -> afterJoinMethodExecutors.forEach(e -> e.execute(data)));
             stopwatch.stop();
             log.debug("run execute cost {} ms, data is {}.", stopwatch.getTotalTimeMillis(), dataList);
         } else {
-            dataList.forEach(data ->
-                    getAfterJoinMethodExecutors()
-                            .forEach(e -> e.execute(data))
-            );
+            dataList.forEach(data -> afterJoinMethodExecutors.forEach(e -> e.execute(data)));
         }
     }
 }

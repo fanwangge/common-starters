@@ -70,6 +70,7 @@ public abstract class AbstractAnnotationBasedJoinFieldExecutorFactory<A extends 
                                 .map(field -> this.buildJoinFieldExecutor(clazz, field, AnnotatedElementUtils.getMergedAnnotation(field, annotationClass)))
                                 .collect(Collectors.toList())
                 ))
+                .sorted(Comparator.comparing(JoinFieldExecutor::runOnLevel))
                 .collect(Collectors.toList());
     }
 

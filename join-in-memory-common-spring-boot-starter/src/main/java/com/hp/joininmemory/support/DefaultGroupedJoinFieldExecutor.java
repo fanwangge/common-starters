@@ -26,6 +26,12 @@ public class DefaultGroupedJoinFieldExecutor<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_
         this.joinFieldExecutors = joinFieldExecutors;
     }
 
+    @Override
+    public int runOnLevel() {
+        // Based on the grouping logic, all executors in a group have the same run level.
+        return joinFieldExecutors.getFirst().runOnLevel();
+    }
+
     private List<JoinFieldContext<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT>> createJoinContext(Collection<SOURCE_DATA> sourceData) {
         return joinFieldExecutors.stream()
                 .map(executor -> executor.createJoinFieldContext(sourceData))
