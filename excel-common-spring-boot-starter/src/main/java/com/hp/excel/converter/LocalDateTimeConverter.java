@@ -35,7 +35,7 @@ public enum LocalDateTimeConverter implements Converter<LocalDateTime> {
     }
 
     @Override
-    public LocalDateTime convertToJavaData(ReadCellData<?> cellData, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) throws Exception {
+    public LocalDateTime convertToJavaData(ReadCellData<?> cellData, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) {
         final String stringValue = cellData.getStringValue();
         String format;
         if (contentProperty != null && contentProperty.getDateTimeFormatProperty() != null) {
@@ -47,35 +47,24 @@ public enum LocalDateTimeConverter implements Converter<LocalDateTime> {
     }
 
     @Override
-    public WriteCellData<?> convertToExcelData(LocalDateTime value, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) throws Exception {
+    public WriteCellData<?> convertToExcelData(LocalDateTime value, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) {
         String format;
         if (contentProperty != null && contentProperty.getDateTimeFormatProperty() != null) {
             format = contentProperty.getDateTimeFormatProperty().getFormat();
         } else {
             format = "yyyy-MM-dd HH:mm:ss";
         }
-        return new WriteCellData(value.format(DateTimeFormatter.ofPattern(format)));
+        return new WriteCellData<>(value.format(DateTimeFormatter.ofPattern(format)));
     }
 
     private static String findWithLength(String dateString) {
         int length = dateString.length();
-        switch (length) {
-            case 10:
-                return "yyyy-MM-dd";
-            case 11:
-            case 12:
-            case 13:
-            case 15:
-            case 16:
-            case 18:
-            default:
-                throw new IllegalArgumentException("can not find date format for：" + dateString);
-            case 14:
-                return "yyyyMMddHHmmss";
-            case 17:
-                return "yyyyMMdd HH:mm:ss";
-            case 19:
-                return dateString.contains(DASH) ? "yyyy-MM-dd HH:mm:ss" : "yyyy/MM/dd HH:mm:ss";
-        }
+        return switch (length) {
+            case 10 -> "yyyy-MM-dd";
+            case 11, 12, 13, 15, 16, 18, 14 -> "yyyyMMddHHmmss";
+            case 17 -> "yyyyMMdd HH:mm:ss";
+            case 19 -> dateString.contains(DASH) ? "yyyy-MM-dd HH:mm:ss" : "yyyy/MM/dd HH:mm:ss";
+            default -> throw new IllegalArgumentException("can not find date format for：" + dateString);
+        };
     }
 }

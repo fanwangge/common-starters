@@ -15,7 +15,6 @@ import java.util.List;
 
 /**
  * @author hp
- * @date 2022/11/7
  */
 @RequiredArgsConstructor
 @Configuration
@@ -40,6 +39,7 @@ public class ExcelAutoConfiguration {
         List<HandlerMethodArgumentResolver> argumentResolvers = this.requestMappingHandlerAdapter.getArgumentResolvers();
         List<HandlerMethodArgumentResolver> resolverList = new ArrayList<>();
         resolverList.add(new RequestExcelArgumentResolver());
+        assert argumentResolvers != null;
         resolverList.addAll(argumentResolvers);
         this.requestMappingHandlerAdapter.setArgumentResolvers(resolverList);
     }

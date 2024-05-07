@@ -11,6 +11,8 @@ import java.util.Set;
  */
 @Data
 public class HeadMetaData {
+
     private List<List<String>> head;
+
     private Set<String> ignoreHeadFields;
 }

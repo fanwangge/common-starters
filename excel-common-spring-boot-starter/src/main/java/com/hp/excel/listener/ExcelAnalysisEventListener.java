@@ -1,7 +1,7 @@
 package com.hp.excel.listener;
 
 import com.alibaba.excel.event.AnalysisEventListener;
-import com.hp.excel.vo.ErrorMessage;
+import com.hp.excel.model.ExcelErrorMessageModel;
 
 import java.util.List;
 
@@ -15,5 +15,5 @@ public abstract class ExcelAnalysisEventListener<T,D> extends AnalysisEventListe
 
     public abstract D getData();
 
-    public abstract List<ErrorMessage> getErrors();
+    public abstract List<ExcelErrorMessageModel> getErrors();
 }

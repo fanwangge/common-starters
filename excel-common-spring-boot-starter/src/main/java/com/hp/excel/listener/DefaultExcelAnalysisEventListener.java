@@ -2,7 +2,7 @@ package com.hp.excel.listener;
 
 import com.alibaba.excel.context.AnalysisContext;
 import com.hp.common.base.utils.ValidateUtil;
-import com.hp.excel.vo.ErrorMessage;
+import com.hp.excel.model.ExcelErrorMessageModel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.Lists;
 
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class DefaultExcelAnalysisEventListener extends ExcelAnalysisEventListener<Object,List<Object>> {
 
     private final List<Object> list = Lists.newArrayList();
-    private final List<ErrorMessage> errorMessageList = Lists.newArrayList();
+    private final List<ExcelErrorMessageModel> errorMessageList = Lists.newArrayList();
     private long lineNum = 1L;
 
     @Override
@@ -28,7 +28,7 @@ public class DefaultExcelAnalysisEventListener extends ExcelAnalysisEventListene
     }
 
     @Override
-    public List<ErrorMessage> getErrors() {
+    public List<ExcelErrorMessageModel> getErrors() {
         return this.errorMessageList;
     }
 
@@ -37,7 +37,7 @@ public class DefaultExcelAnalysisEventListener extends ExcelAnalysisEventListene
         Set<ConstraintViolation<Object>> violations = ValidateUtil.validate(o);
         if (!violations.isEmpty()) {
             Set<String> messageSet = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.toSet());
-            this.errorMessageList.add(new ErrorMessage(this.lineNum++, messageSet));
+            this.errorMessageList.add(new ExcelErrorMessageModel(this.lineNum++, messageSet));
         } else {
             this.list.add(o);
         }

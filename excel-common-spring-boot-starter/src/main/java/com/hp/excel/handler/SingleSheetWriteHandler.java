@@ -1,18 +1,23 @@
 package com.hp.excel.handler;
 
+import cn.hutool.core.collection.CollUtil;
 import com.alibaba.excel.ExcelWriter;
 import com.alibaba.excel.converters.Converter;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.hp.excel.annotation.ResponseExcel;
+import com.hp.excel.annotation.Sheet;
+import com.hp.excel.exception.ExcelExportException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
 /**
+ * Export single sheet if the controller method
+ * returns {@code List<T>}
+ *
  * @author hp
- * @date 2022/11/7
  */
 public class SingleSheetWriteHandler extends AbstractExcelSheetWriteHandler {
 
@@ -22,28 +27,35 @@ public class SingleSheetWriteHandler extends AbstractExcelSheetWriteHandler {
 
     @Override
     public boolean support(Object obj) {
-        if (!(obj instanceof List)) {
+        if (!(obj instanceof List<?> list)) {
             throw new IllegalArgumentException("@ResponseExcel annotation works only when the return type is a List");
         }
-        final List<?> list = (List<?>) obj;
-        return !list.isEmpty() && !(list.get(0) instanceof List);
+        return CollUtil.isNotEmpty(list) && !(list.get(0) instanceof List);
     }
 
     @Override
     public void write(Object o, HttpServletResponse response, ResponseExcel responseExcel) {
-        try {
-            final List<?> list = (List) o;
-            final Class<?> dataClass = list.get(0).getClass();
-            final ExcelWriter excelWriter = this.getExcelWriter(response, responseExcel, dataClass);
-            final WriteSheet sheet = this.sheet(responseExcel.sheets()[0], dataClass, responseExcel.template(), responseExcel.headGenerator());
+        final List<?> data = (List<?>) o;
+        final List<? extends Class<?>> dataClasses = data.stream().map(Object::getClass).distinct().toList();
+        try (final ExcelWriter excelWriter = this.getExcelWriter(response, responseExcel, dataClasses)) {
+
+            final Sheet sheetAnn = responseExcel.sheets()[0];
+            final WriteSheet sheet = this.getWriteSheet(
+                    sheetAnn,
+                    dataClasses.getFirst(),
+                    responseExcel.template(),
+                    responseExcel.headGenerator()
+            );
+
             if (responseExcel.fill()) {
-                excelWriter.fill(list, sheet);
+                excelWriter.fill(data, sheet);
             } else {
-                excelWriter.write(list, sheet);
+                excelWriter.write(data, sheet);
             }
+
             excelWriter.finish();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ExcelExportException(e);
         }
     }
 }

@@ -1,15 +1,19 @@
-package com.hp.excel.enhence.handler;
+package com.hp.excel.enhance.handler;
 
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.write.handler.RowWriteHandler;
 import com.alibaba.excel.write.handler.context.RowWriteHandlerContext;
+import com.google.common.collect.Maps;
 import com.hp.excel.annotation.ExcelMerge;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.utils.Lists;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -17,19 +21,17 @@ import java.util.stream.Collectors;
  * @date 2022/11/8
  */
 @Slf4j
-public abstract class DynamicMergeHandler implements RowWriteHandler {
+public abstract class AbstractExcelMergeRowWriteHandler implements RowWriteHandler {
 
-    private final Class<?> dataClass;
-    private final Map<Integer, ExcelMerge> mergeHolder;
+    protected final Map<Integer, ExcelMerge> excelMergeMapping;
 
-    public DynamicMergeHandler(Class<?> dataClass) {
-        this.dataClass = dataClass;
-        this.mergeHolder = this.init(dataClass);
+    public AbstractExcelMergeRowWriteHandler(Class<?> dataClass) {
+        this.excelMergeMapping = this.createExcelMergeMapping(dataClass);
     }
 
-    protected Map<Integer, ExcelMerge> init(Class<?> dataClass) {
-        Map<Integer, ExcelMerge> mergeHolder = new HashMap<>();
-        List<Field> fieldHolder = new ArrayList<>();
+    protected Map<Integer, ExcelMerge> createExcelMergeMapping(Class<?> dataClass) {
+        final Map<Integer, ExcelMerge> mergeHolder = Maps.newHashMap();
+        final List<Field> fieldHolder = Lists.newArrayList();
         for (Class<?> acls = dataClass; acls != null; acls = acls.getSuperclass()) {
             final List<Field> fields = Arrays.stream(acls.getDeclaredFields())
                     .peek(f -> {
@@ -47,7 +49,7 @@ public abstract class DynamicMergeHandler implements RowWriteHandler {
             for (int i = 0; i < fieldHolder.size(); i++) {
                 final Field field = fieldHolder.get(i);
                 final ExcelMerge excelMerge = field.getAnnotation(ExcelMerge.class);
-                if (excelMerge != null && excelMerge.mergeRow()) {
+                if (excelMerge != null) {
                     final ExcelProperty excelProperty = field.getAnnotation(ExcelProperty.class);
                     if (excelProperty == null) {
                         throw new UnsupportedOperationException(" @ExcelMerge works only when @ExcelProperty is set ");
@@ -65,7 +67,7 @@ public abstract class DynamicMergeHandler implements RowWriteHandler {
         if (context.getHead() || context.getRelativeRowIndex() == null) {
             return;
         }
-        this.merge(mergeHolder, context);
+        this.merge(excelMergeMapping, context);
     }
 
     protected abstract void merge(Map<Integer, ExcelMerge> mergeHolder, RowWriteHandlerContext context);

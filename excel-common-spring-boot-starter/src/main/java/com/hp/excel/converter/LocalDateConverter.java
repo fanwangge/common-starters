@@ -9,7 +9,6 @@ import com.alibaba.excel.metadata.property.ExcelContentProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -21,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 @Getter
 @AllArgsConstructor
 public enum LocalDateConverter implements Converter<LocalDate> {
+
     INSTANCE;
 
     @Override
@@ -34,7 +34,7 @@ public enum LocalDateConverter implements Converter<LocalDate> {
     }
 
     @Override
-    public LocalDate convertToJavaData(ReadCellData cellData, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) throws ParseException {
+    public LocalDate convertToJavaData(ReadCellData cellData, ExcelContentProperty contentProperty, GlobalConfiguration globalConfiguration) {
         if (contentProperty != null && contentProperty.getDateTimeFormatProperty() != null) {
             return LocalDate.parse(cellData.getStringValue(), DateTimeFormatter.ofPattern(contentProperty.getDateTimeFormatProperty().getFormat()));
         } else {
@@ -50,6 +50,6 @@ public enum LocalDateConverter implements Converter<LocalDate> {
         } else {
             formatter = DateTimeFormatter.ISO_LOCAL_DATE;
         }
-        return new WriteCellData(value.format(formatter));
+        return new WriteCellData<>(value.format(formatter));
     }
 }

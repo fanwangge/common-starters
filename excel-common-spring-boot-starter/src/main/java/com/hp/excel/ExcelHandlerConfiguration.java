@@ -15,18 +15,12 @@ import java.util.List;
 
 /**
  * @author hp
- * @date 2022/11/7
  */
 @EnableSpringUtil
 @RequiredArgsConstructor
 public class ExcelHandlerConfiguration {
-    private final ObjectProvider<List<Converter<?>>> converterProvider;
 
-//    @Bean
-//    @ConditionalOnMissingBean
-//    public WriterBuilderEnhancer writerBuilderEnhancer() {
-//        return new DefaultWriterBuilderEnhancer();
-//    }
+    private final ObjectProvider<List<Converter<?>>> converterProvider;
 
     @Bean
     @ConditionalOnMissingBean
@@ -36,7 +30,7 @@ public class ExcelHandlerConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public MultiSheetWriteHandler manySheetWriteHandler() {
+    public MultiSheetWriteHandler multiSheetWriteHandler() {
         return new MultiSheetWriteHandler(this.converterProvider);
     }
 
@@ -45,11 +39,5 @@ public class ExcelHandlerConfiguration {
     public ResponseExcelReturnValueHandler responseExcelReturnValueHandler(List<ExcelSheetWriteHandler> sheetWriteHandlerList) {
         return new ResponseExcelReturnValueHandler(sheetWriteHandlerList);
     }
-//
-//    @Bean
-//    @ConditionalOnBean({MessageSource.class})
-//    @ConditionalOnMissingBean
-//    public I18nHeaderCellWriteHandler i18nHeaderCellWriteHandler(MessageSource messageSource) {
-//        return new I18nHeaderCellWriteHandler(messageSource);
-//    }
+
 }

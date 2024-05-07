@@ -27,7 +27,7 @@ public class ResponseExcelReturnValueHandler implements HandlerMethodReturnValue
     }
 
     @Override
-    public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
+    public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) {
         final HttpServletResponse nativeResponse = webRequest.getNativeResponse(HttpServletResponse.class);
         Assert.notNull(nativeResponse, "No httpServletResponse was found");
         final ResponseExcel responseExcel = returnType.getMethodAnnotation(ResponseExcel.class);
@@ -41,7 +41,7 @@ public class ResponseExcelReturnValueHandler implements HandlerMethodReturnValue
                     try {
                         handler.export(returnValue, nativeResponse, responseExcel);
                     } catch (Exception e) {
-                       throw new RuntimeException(e);
+                        throw new RuntimeException(e);
                     }
                 });
     }
