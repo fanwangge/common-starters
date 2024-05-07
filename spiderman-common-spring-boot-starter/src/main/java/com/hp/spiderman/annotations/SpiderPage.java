@@ -1,6 +1,6 @@
 package com.hp.spiderman.annotations;
 
-import com.hp.common.base.annotations.MethodDesc;
+import com.hp.common.base.annotation.MethodDesc;
 
 import java.lang.annotation.*;
 

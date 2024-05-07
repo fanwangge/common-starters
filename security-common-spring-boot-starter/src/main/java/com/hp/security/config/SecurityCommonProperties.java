@@ -2,7 +2,7 @@ package com.hp.security.config;
 
 
 import com.google.common.collect.Lists;
-import com.hp.common.base.annotations.FieldDesc;
+import com.hp.common.base.annotation.FieldDesc;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

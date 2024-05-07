@@ -38,7 +38,7 @@ import com.hp.codegen.processor.service.jpa.GenServiceProcessor;
 import com.hp.codegen.processor.vo.GenVo;
 import com.hp.codegen.processor.vo.jpa.GenVoProcessor;
 import com.hp.codegen.spi.CodeGenProcessor;
-import com.hp.common.base.annotations.FieldDesc;
+import com.hp.common.base.annotation.FieldDesc;
 import com.squareup.javapoet.*;
 import lombok.Data;
 import lombok.Getter;

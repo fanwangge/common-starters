@@ -1,6 +1,6 @@
 package com.hp.security.base;
 
-import com.hp.common.base.annotations.FieldDesc;
+import com.hp.common.base.annotation.FieldDesc;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 

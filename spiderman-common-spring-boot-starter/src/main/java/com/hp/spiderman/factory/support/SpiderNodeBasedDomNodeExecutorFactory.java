@@ -3,7 +3,7 @@ package com.hp.spiderman.factory.support;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.hp.common.base.annotations.MethodDesc;
+import com.hp.common.base.annotation.MethodDesc;
 import com.hp.spiderman.annotations.SpiderNode;
 import com.hp.spiderman.constants.NodeRetrieveLogic;
 import com.hp.spiderman.factory.ConnectionFactory;
