@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.hp</groupId>
         <artifactId>common-bom</artifactId>
-        <version>1.0.0-sp3.2-SNAPSHOT</version>
+        <version>1.0.1-sp3.2-SNAPSHOT</version>
     </parent>
 
     <modules>
@@ -17,11 +17,9 @@
         <module>jpa-common-spring-boot-starter</module>
         <module>security-common-spring-boot-starter</module>
         <module>code-gen-common-spring-boot-starter</module>
-        <module>code-gen-example</module>
         <module>excel-common-spring-boot-starter</module>
         <module>third-pay-common-spring-boot-starter</module>
         <module>sync-common-spring-boot-starter</module>
-        <module>excel-starter-example</module>
         <module>join-in-memory-common-spring-boot-starter</module>
         <module>aspose-common-spring-boot-starter</module>
         <module>spiderman-common-spring-boot-starter</module>
