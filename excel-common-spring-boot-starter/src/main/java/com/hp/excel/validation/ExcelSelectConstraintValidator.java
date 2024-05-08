@@ -58,11 +58,12 @@ public class ExcelSelectConstraintValidator implements ConstraintValidator<Excel
         if (StrUtil.isEmpty(excelOptions.expression())) {
             return null;
         }
-        Object parameters = null;
         final SpELHelper spELHelper = SpringUtil.getBean(SpELHelper.class);
-//        if (StrUtil.isNotEmpty(excelOptions.parameters())) {
-//            parameters = spELHelper.standardSpELDataGetterInstance(excelOptions.parameters()).apply(null);
-//        }
-        return (T) spELHelper.standardSpELDataGetterInstance(excelOptions.expression()).apply(parameters);
+        // TODO 暂不支持校验时的条件
+        return (T) spELHelper.newGetterInstance(excelOptions.expression()).apply(
+                null,
+                evaluationContext -> {
+                }
+        );
     }
 }

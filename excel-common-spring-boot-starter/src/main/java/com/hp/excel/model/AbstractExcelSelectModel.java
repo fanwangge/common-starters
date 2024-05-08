@@ -13,6 +13,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -40,7 +41,7 @@ public abstract class AbstractExcelSelectModel<T> {
 
     protected int lastRow;
 
-    public AbstractExcelSelectModel(@Nonnull Field field, @Nonnull ExcelSelect excelSelect, @Nullable ExcelProperty excelProperty, int defaultSort) {
+    public AbstractExcelSelectModel(@Nonnull Field field, @Nonnull ExcelSelect excelSelect, @Nullable ExcelProperty excelProperty, int defaultSort, @Nullable Map<String, Object> parameters) {
         final Optional<ExcelProperty> excelPropertyOpt = Optional.ofNullable(excelProperty);
         this.headLayerCount = excelPropertyOpt.map(property -> property.value().length).orElse(1);
         this.firstRow = Math.max(excelSelect.firstRow(), this.headLayerCount);
@@ -50,7 +51,7 @@ public abstract class AbstractExcelSelectModel<T> {
         this.columnName = excelPropertyOpt.map(property -> property.value()[this.headLayerCount - 1]).orElse(field.getName());
         this.columnIndex = excelPropertyOpt.map(property -> property.index() > -1 ? property.index() : defaultSort).orElse(defaultSort);
 
-        this.options = resolveOptions(excelSelect);
+        this.options = resolveOptions(excelSelect, parameters);
     }
 
     public boolean hasParentColumn() {
@@ -59,18 +60,16 @@ public abstract class AbstractExcelSelectModel<T> {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    protected T resolveOptions(@Nonnull ExcelSelect excelSelect) {
+    protected T resolveOptions(@Nonnull ExcelSelect excelSelect, @Nullable Map<String, Object> parameters) {
         final ExcelOptions excelOptions = excelSelect.options();
         if (StrUtil.isEmpty(excelOptions.expression())) {
             log.warn("The ExcelSelect on {} has no options whatsoever.", this.columnName);
             return null;
         }
-        Object parameters = null;
         final SpELHelper spELHelper = SpringUtil.getBean(SpELHelper.class);
-//        if (StrUtil.isNotEmpty(excelOptions.parameters())) {
-//            log.debug("The ExcelOptions on {} has no parameters", this.columnName);
-//            parameters = spELHelper.standardSpELDataGetterInstance(excelOptions.parameters()).apply(null);
-//        }
-        return (T) spELHelper.standardSpELDataGetterInstance(excelOptions.expression()).apply(null);
+        return (T) spELHelper.newGetterInstance(excelOptions.expression()).apply(
+                null,
+                (evaluationContext -> Optional.ofNullable(parameters).ifPresent(map -> map.forEach(evaluationContext::setVariable)))
+        );
     }
 }

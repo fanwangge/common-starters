@@ -18,6 +18,7 @@ import com.hp.excel.converter.LocalDateTimeConverter;
 import com.hp.excel.enhance.ExcelWriterBuilderEnhance;
 import com.hp.excel.head.HeadGenerator;
 import com.hp.excel.head.HeadMetaData;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.utils.Lists;
@@ -61,7 +62,7 @@ public abstract class AbstractExcelSheetWriteHandler implements ExcelSheetWriteH
     }
 
     @Override
-    public void export(Object o, HttpServletResponse response, ResponseExcel responseExcel) {
+    public void export(Object object, HttpServletRequest request, HttpServletResponse response, ResponseExcel responseExcel) {
         this.check(responseExcel);
         final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         String name = (String) (Objects.requireNonNull(requestAttributes)).getAttribute(ExcelConstants.FILENAME_ATTRIBUTE_KEY, 0);
@@ -79,7 +80,7 @@ public abstract class AbstractExcelSheetWriteHandler implements ExcelSheetWriteH
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", -1);
         response.setCharacterEncoding("UTF-8");
-        this.write(o, response, responseExcel);
+        this.write(object, request, response, responseExcel);
     }
 
     @Override
@@ -87,7 +88,7 @@ public abstract class AbstractExcelSheetWriteHandler implements ExcelSheetWriteH
         this.applicationContext = applicationContext;
     }
 
-    protected ExcelWriter getExcelWriter(HttpServletResponse response, ResponseExcel responseExcel, Collection<? extends Class<?>> dataClasses) throws IOException {
+    protected ExcelWriter getExcelWriter(ResponseExcel responseExcel, Collection<? extends Class<?>> dataClasses, HttpServletRequest request, HttpServletResponse response) throws IOException {
         ExcelWriterBuilder excelWriterBuilder = EasyExcel.write(response.getOutputStream())
                 .registerConverter(LocalDateConverter.INSTANCE)
                 .registerConverter(LocalDateTimeConverter.INSTANCE)
@@ -124,26 +125,14 @@ public abstract class AbstractExcelSheetWriteHandler implements ExcelSheetWriteH
             for (Class<? extends ExcelWriterBuilderEnhance> enhancement : enhancements) {
                 final ExcelWriterBuilderEnhance enhance = BeanUtils.instantiateClass(enhancement);
                 enhanceHolder.add(enhance);
-                excelWriterBuilder = enhance.enhanceExcel(excelWriterBuilder, response, responseExcel, dataClasses, templatePath);
+                excelWriterBuilder = enhance.enhanceExcel(excelWriterBuilder, responseExcel, dataClasses, request, response);
             }
         }
 
         return excelWriterBuilder.build();
     }
 
-    protected void registerCommonConverter(ExcelWriterBuilder excelWriterBuilder, ResponseExcel responseExcel) {
-        if (ArrayUtil.isEmpty(responseExcel.converter())) {
-            return;
-        }
-        Arrays.stream(responseExcel.converter())
-                .forEach(converter -> excelWriterBuilder.registerConverter(BeanUtils.instantiateClass(converter)));
-    }
-
-    protected void registerCustomConverter(ExcelWriterBuilder excelWriterBuilder) {
-        this.converterProvider.ifAvailable(converters -> converters.forEach(Objects.requireNonNull(excelWriterBuilder)::registerConverter));
-    }
-
-    protected WriteSheet getWriteSheet(Sheet sheet, Class<?> dataClass, String template, Class<? extends HeadGenerator> headGenerator) {
+    protected WriteSheet getWriteSheet(Sheet sheet, Class<?> dataClass, String templatePath, Class<? extends HeadGenerator> headGenerator) {
         final Integer sheetNo = sheet.sheetNo() >= 0 ? sheet.sheetNo() : null;
         final String sheetName = sheet.sheetName();
         ExcelWriterSheetBuilder sheetBuilder = StrUtil.isEmpty(sheetName) ? EasyExcel.writerSheet(sheetNo) : EasyExcel.writerSheet(sheetNo, sheetName);
@@ -169,10 +158,22 @@ public abstract class AbstractExcelSheetWriteHandler implements ExcelSheetWriteH
 
         if (CollUtil.isNotEmpty(enhanceHolder)) {
             for (ExcelWriterBuilderEnhance enhance : enhanceHolder) {
-                sheetBuilder = enhance.enhanceSheet(sheetBuilder, sheetNo, sheetName, dataClass, template, headGenerateClass);
+                sheetBuilder = enhance.enhanceSheet(sheetBuilder, sheetNo, sheetName, dataClass, headGenerateClass, templatePath);
             }
         }
         return sheetBuilder.build();
+    }
+
+    protected void registerCommonConverter(ExcelWriterBuilder excelWriterBuilder, ResponseExcel responseExcel) {
+        if (ArrayUtil.isEmpty(responseExcel.converter())) {
+            return;
+        }
+        Arrays.stream(responseExcel.converter())
+                .forEach(converter -> excelWriterBuilder.registerConverter(BeanUtils.instantiateClass(converter)));
+    }
+
+    protected void registerCustomConverter(ExcelWriterBuilder excelWriterBuilder) {
+        this.converterProvider.ifAvailable(converters -> converters.forEach(Objects.requireNonNull(excelWriterBuilder)::registerConverter));
     }
 
     protected void fillCustomHead(Class<?> dataClass, Class<? extends HeadGenerator> headGenerateClass, ExcelWriterSheetBuilder sheetBuilder) {

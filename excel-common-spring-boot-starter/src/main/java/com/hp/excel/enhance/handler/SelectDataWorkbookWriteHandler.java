@@ -16,7 +16,6 @@ public class SelectDataWorkbookWriteHandler implements WorkbookWriteHandler {
     @Override
     public void afterWorkbookCreate(WriteWorkbookHolder writeWorkbookHolder) {
         final Sheet sheet = ExcelHelper.createSheet(writeWorkbookHolder.getWorkbook(), ExcelConstants.SELECTION_HOLDER_SHEET_NAME, true);
-        // TODO
-//        ExcelHelper.hideSheet(writeWorkbookHolder.getWorkbook(), sheet);
+        ExcelHelper.hideSheet(writeWorkbookHolder.getWorkbook(), sheet);
     }
 }

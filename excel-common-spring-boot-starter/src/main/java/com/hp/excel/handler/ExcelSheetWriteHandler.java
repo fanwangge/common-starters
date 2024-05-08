@@ -2,6 +2,7 @@ package com.hp.excel.handler;
 
 
 import com.hp.excel.annotation.ResponseExcel;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
@@ -9,11 +10,12 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public interface ExcelSheetWriteHandler {
 
-    boolean support(Object obj);
+    boolean support(Object object);
 
     void check(ResponseExcel responseExcel);
 
-    void export(Object o, HttpServletResponse response, ResponseExcel responseExcel) throws Exception;
+    void export(Object object, HttpServletRequest request, HttpServletResponse response, ResponseExcel responseExcel) throws Exception;
 
-    void write(Object o, HttpServletResponse response, ResponseExcel responseExcel);
+    void write(Object object, HttpServletRequest request, HttpServletResponse response, ResponseExcel responseExcel);
+
 }

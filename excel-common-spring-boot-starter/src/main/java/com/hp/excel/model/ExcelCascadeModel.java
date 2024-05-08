@@ -17,7 +17,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = false)
 public class ExcelCascadeModel extends AbstractExcelSelectModel<Map<Object, Collection<Object>>> {
 
-    public ExcelCascadeModel(@NotNull Field field, @NotNull ExcelSelect excelSelect, @Nullable ExcelProperty excelProperty, int defaultSort) {
-        super(field, excelSelect, excelProperty, defaultSort);
+    public ExcelCascadeModel(@NotNull Field field, @NotNull ExcelSelect excelSelect, @Nullable ExcelProperty excelProperty, int defaultSort, @Nullable Map<String, Object> parameters) {
+        super(field, excelSelect, excelProperty, defaultSort, parameters);
     }
 }

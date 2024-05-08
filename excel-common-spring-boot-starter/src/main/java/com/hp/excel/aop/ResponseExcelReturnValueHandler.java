@@ -2,6 +2,7 @@ package com.hp.excel.aop;
 
 import com.hp.excel.annotation.ResponseExcel;
 import com.hp.excel.handler.ExcelSheetWriteHandler;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;
@@ -28,8 +29,10 @@ public class ResponseExcelReturnValueHandler implements HandlerMethodReturnValue
 
     @Override
     public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) {
+        final HttpServletRequest nativeRequest = webRequest.getNativeRequest(HttpServletRequest.class);
+        Assert.notNull(nativeRequest, "No HttpServletRequest was found");
         final HttpServletResponse nativeResponse = webRequest.getNativeResponse(HttpServletResponse.class);
-        Assert.notNull(nativeResponse, "No httpServletResponse was found");
+        Assert.notNull(nativeResponse, "No HttpServletResponse was found");
         final ResponseExcel responseExcel = returnType.getMethodAnnotation(ResponseExcel.class);
         Assert.notNull(responseExcel, "No @ResponseExcel annotation was found");
         mavContainer.setRequestHandled(true);
@@ -39,7 +42,7 @@ public class ResponseExcelReturnValueHandler implements HandlerMethodReturnValue
                 .ifPresent(handler ->
                 {
                     try {
-                        handler.export(returnValue, nativeResponse, responseExcel);
+                        handler.export(returnValue, nativeRequest, nativeResponse, responseExcel);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }

@@ -7,6 +7,7 @@ import com.alibaba.excel.write.metadata.WriteSheet;
 import com.hp.excel.annotation.ResponseExcel;
 import com.hp.excel.annotation.Sheet;
 import com.hp.excel.exception.ExcelExportException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.compress.utils.Lists;
 import org.springframework.beans.factory.ObjectProvider;
@@ -36,7 +37,7 @@ public class MultiSheetWriteHandler extends AbstractExcelSheetWriteHandler {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void write(Object o, HttpServletResponse response, ResponseExcel responseExcel) {
+    public void write(Object o, HttpServletRequest request, HttpServletResponse response, ResponseExcel responseExcel) {
         final List<List<?>> list = (List<List<?>>) o;
         final Sheet[] sheets = responseExcel.sheets();
         final List<Class<?>> dataClasses = Lists.newArrayList();
@@ -44,7 +45,7 @@ public class MultiSheetWriteHandler extends AbstractExcelSheetWriteHandler {
             dataClasses.add(list.get(i).getFirst().getClass());
         }
 
-        try (final ExcelWriter excelWriter = getExcelWriter(response, responseExcel, dataClasses)) {
+        try (final ExcelWriter excelWriter = getExcelWriter(responseExcel, dataClasses, request, response)) {
 
             for (int i = 0; i < sheets.length; ++i) {
                 final List<?> data = list.get(i);
@@ -62,6 +63,7 @@ public class MultiSheetWriteHandler extends AbstractExcelSheetWriteHandler {
                     excelWriter.write(data, sheet);
                 }
             }
+
             excelWriter.finish();
         } catch (IOException e) {
             throw new ExcelExportException(e);

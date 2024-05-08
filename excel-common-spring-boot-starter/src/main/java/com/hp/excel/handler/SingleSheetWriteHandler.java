@@ -7,6 +7,7 @@ import com.alibaba.excel.write.metadata.WriteSheet;
 import com.hp.excel.annotation.ResponseExcel;
 import com.hp.excel.annotation.Sheet;
 import com.hp.excel.exception.ExcelExportException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -34,10 +35,11 @@ public class SingleSheetWriteHandler extends AbstractExcelSheetWriteHandler {
     }
 
     @Override
-    public void write(Object o, HttpServletResponse response, ResponseExcel responseExcel) {
+    public void write(Object o, HttpServletRequest request, HttpServletResponse response, ResponseExcel responseExcel) {
         final List<?> data = (List<?>) o;
         final List<? extends Class<?>> dataClasses = data.stream().map(Object::getClass).distinct().toList();
-        try (final ExcelWriter excelWriter = this.getExcelWriter(response, responseExcel, dataClasses)) {
+
+        try (final ExcelWriter excelWriter = this.getExcelWriter(responseExcel, dataClasses, request, response)) {
 
             final Sheet sheetAnn = responseExcel.sheets()[0];
             final WriteSheet sheet = this.getWriteSheet(
