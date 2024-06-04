@@ -1,12 +1,15 @@
 package com.hp.joininmemory.support;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.map.MapUtil;
 import com.google.common.collect.Maps;
 import com.hp.joininmemory.JoinFieldExecutor;
-import com.hp.joininmemory.context.JoinFieldContext;
 import com.hp.joininmemory.exception.JoinErrorCode;
 import com.hp.joininmemory.exception.JoinException;
+import com.hp.joininmemory.context.JoinFieldContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.expression.spel.support.StandardTypeConverter;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -19,7 +22,15 @@ import static java.util.stream.Collectors.toList;
  * @author hp 2024/1/8
  */
 @Slf4j
-public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT> implements JoinFieldExecutor<SOURCE_DATA> {
+public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT> implements JoinFieldExecutor<SOURCE_DATA> {
+
+    /**
+     * 过滤数据
+     *
+     * @param data 原始数据对象
+     * @return 如果被过滤, 则应返回false
+     */
+    protected abstract boolean sourceDataFilter(SOURCE_DATA data);
 
     /**
      * 从原始数据中生成 JoinKey
@@ -27,15 +38,7 @@ public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, 
      * @param data 原始数据对象
      * @return 关联属性值
      */
-    protected abstract SOURCE_JOIN_KEY joinKeyFromSource(SOURCE_DATA data);
-
-    /**
-     * 提供对key的类型转换
-     *
-     * @param joinKey 关联key
-     * @return 关联key值
-     */
-    protected abstract JOIN_KEY sourceJoinKeyToJoinKey(SOURCE_JOIN_KEY joinKey);
+    protected abstract JOIN_KEY joinKeyFromSourceData(SOURCE_DATA data);
 
     /**
      * 根据 JoinKey 批量获取 JoinData
@@ -43,7 +46,7 @@ public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, 
      * @param joinKeys 关联属性值
      * @return 关联数据
      */
-    protected abstract List<JOIN_DATA> joinDataByJoinKeys(Collection<JOIN_KEY> joinKeys);
+    protected abstract Collection<JOIN_DATA> joinDataByJoinKeys(Collection<JOIN_KEY> joinKeys);
 
     /**
      * 从 JoinData 中获取 JoinKey
@@ -51,15 +54,15 @@ public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, 
      * @param joinData 关联属性数据
      * @return 关联属性数据形成map时的key值
      */
-    protected abstract DATA_JOIN_KEY dataJoinKeyFromJoinData(JOIN_DATA joinData);
+    protected abstract JOIN_KEY joinKeyFromJoinData(JOIN_DATA joinData);
 
     /**
-     * 提供对key的类型转换
+     * 过滤数据
      *
-     * @param joinKey 原始关联key
-     * @return 转换后的关联key
+     * @param data 查询出的关联数据
+     * @return 如果被过滤, 则应返回false
      */
-    protected abstract JOIN_KEY dataJoinKeyToJoinKey(DATA_JOIN_KEY joinKey);
+    protected abstract boolean joinDataFilter(JOIN_DATA data);
 
     /**
      * 将 JoinData 转换为 JoinResult
@@ -85,42 +88,28 @@ public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, 
      */
     protected abstract void onNotFound(SOURCE_DATA data, JOIN_KEY joinKey);
 
-    List<JoinFieldContext<
-                SOURCE_DATA,
-                SOURCE_JOIN_KEY,
-                JOIN_KEY,
-                JOIN_DATA,
-                DATA_JOIN_KEY,
-                JOIN_RESULT
-                >> createJoinFieldContext(Collection<SOURCE_DATA> sourceDataList) {
-        if (CollUtil.isEmpty(sourceDataList)) {
+    List<JoinFieldContext<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT>> createJoinFieldContext(Collection<SOURCE_DATA> sourceDataCollection) {
+        if (CollUtil.isEmpty(sourceDataCollection)) {
             return Collections.emptyList();
         }
-        return sourceDataList.stream()
+        return sourceDataCollection.stream()
                 .filter(Objects::nonNull)
+                .filter(this::sourceDataFilter)
                 .map(data -> new JoinFieldContext<>(this, data))
-                .peek(context -> context.setSourceJoinKey(joinKeyFromSource(context.getSourceData())))
-                .filter(JoinFieldContext::notEmptySourceJoinKey)
-                .peek(context -> context.setJoinKey(sourceJoinKeyToJoinKey(context.getSourceJoinKey())))
+                .peek(context -> context.setJoinKey(joinKeyFromSourceData(context.getSourceData())))
                 .filter(JoinFieldContext::notEmptyJoinKey)
                 .distinct()
                 .collect(toList());
     }
 
     @Nullable
-    Map<JOIN_KEY, List<JOIN_DATA>> joinDataMapping(List<JOIN_DATA> joinDataList) {
+    Map<JOIN_KEY, List<JOIN_DATA>> createJoinDataMapping(Collection<JOIN_DATA> joinDataList) {
         final Map<Optional<JOIN_KEY>, List<JOIN_DATA>> joinDataMap = joinDataList.stream()
                 .filter(Objects::nonNull)
-                .collect(groupingBy(joinData -> {
-                    final DATA_JOIN_KEY dataJoinKey = dataJoinKeyFromJoinData(joinData);
-                    if (Objects.isNull(dataJoinKey)) {
-                        return Optional.empty();
-                    }
-                    final JOIN_KEY joinKey = dataJoinKeyToJoinKey(dataJoinKey);
-                    return Optional.ofNullable(joinKey);
-                }));
-        if (CollUtil.isEmpty(joinDataMap)) {
-            log.warn("Join data from the datasource is empty. Abort Join!");
+                .collect(groupingBy(joinData -> Optional.ofNullable(joinKeyFromJoinData(joinData))));
+
+        if (MapUtil.isEmpty(joinDataMap)) {
+            log.trace("Join data from the datasource is empty. Abort Join!");
             return null;
         }
         final Map<JOIN_KEY, List<JOIN_DATA>> map = Maps.newHashMap();
@@ -133,47 +122,58 @@ public abstract class AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, 
         return map;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void execute(Collection<SOURCE_DATA> sourceDataList) {
         try {
             if (CollUtil.isEmpty(sourceDataList)) {
-                log.warn("The given source data is empty. Abort Join!");
+                log.trace("The given source data is empty. Abort Join!");
                 return;
             }
-            final List<JoinFieldContext<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT>> joinContexts =
+            final List<JoinFieldContext<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT>> joinContexts =
                     createJoinFieldContext(sourceDataList);
             if (CollUtil.isEmpty(joinContexts)) {
-                log.warn("Join contexts are empty. Abort Join!");
+                log.trace("Join contexts are empty. Abort Join!");
                 return;
             }
             final Set<JOIN_KEY> joinKeys = joinContexts.stream()
                     .map(JoinFieldContext::getJoinKey)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
             if (CollUtil.isEmpty(joinKeys)) {
-                log.warn("Join keys from source are empty. Abort Join!");
+                log.trace("Join keys from source are empty. Abort Join!");
                 return;
             }
-            final List<JOIN_DATA> joinDataList = joinDataByJoinKeys(joinKeys);
+
+            final Collection<JOIN_DATA> joinDataList = joinDataByJoinKeys(joinKeys);
             if (CollUtil.isEmpty(joinKeys)) {
-                log.warn("Join data list from datasource is empty. Abort Join!");
+                log.trace("Join data list from datasource is empty. Abort Join!");
                 return;
             }
-            final Map<JOIN_KEY, List<JOIN_DATA>> joinDataMapping = joinDataMapping(joinDataList);
+            final Map<JOIN_KEY, List<JOIN_DATA>> joinDataMapping = createJoinDataMapping(joinDataList);
             if (CollUtil.isEmpty(joinDataMapping)) {
-                log.warn("Join data mapping from datasource is empty. Abort Join!");
-                log.warn("Possible reasons are: \n 1. join keys from datasource are all null; \n 2. converted join keys from datasource are all null;");
+                log.trace("Join data mapping from datasource is empty. Abort Join!");
+                log.trace("Possible reasons are: \n 1. join keys from datasource are all null; \n 2. converted join keys from datasource are all null;");
                 return;
             }
-            log.debug("Starting join process");
+
+            final Optional<JOIN_KEY> first = joinDataMapping.keySet().stream().findFirst();
+            assert first.isPresent();
+            final TypeDescriptor targetType = TypeDescriptor.forObject(first.get());
+            assert targetType != null;
+
+            log.trace("Starting join process");
             joinContexts.forEach(context -> {
                 final SOURCE_DATA sourceData = context.getSourceData();
                 final JOIN_KEY joinKey = context.getJoinKey();
-                final List<JOIN_DATA> mappingData = joinDataMapping.get(joinKey);
+                final JOIN_KEY convertedJoinKey = (JOIN_KEY) new StandardTypeConverter().convertValue(joinKey, TypeDescriptor.forObject(joinKey), targetType);
+                final List<JOIN_DATA> mappingData = joinDataMapping.get(convertedJoinKey);
                 if (CollUtil.isEmpty(mappingData)) {
-                    log.warn("Join data can't be found through the join key {}", joinKey);
+                    log.trace("Join data can't be found through the join key {}", joinKey);
                     onNotFound(sourceData, joinKey);
                 } else {
                     final List<JOIN_RESULT> joinResults = mappingData.stream()
+                            .filter(this::joinDataFilter)
                             .map(this::joinDataToJoinResult)
                             .filter(Objects::nonNull)
                             .collect(toList());

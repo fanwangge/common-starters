@@ -1,6 +1,8 @@
 package com.hp.joininmemory.annotation;
 
 import com.hp.joininmemory.constant.ExecuteLevel;
+import com.hp.joininmemory.support.JoinInMemoryBasedJoinFieldExecutorFactory;
+import org.intellij.lang.annotations.Language;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,12 +11,10 @@ import java.lang.annotation.Target;
 
 
 /**
- * The standard format of the SpEL is an expression wrapped by #{},
- * but this specific implementation, which is {@linkplain JoinInMemoryBasedJoinFieldExecutorFactory.DataGetter modified}, supports
- * passing the expression itself without the wrapping format.
+ * <a href="https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/expressions.html">Spring SpEL</a>
  *
  * @author hp
- * @see com.hp.joininmemory.support.JoinInMemoryBasedJoinFieldExecutorFactory
+ * @see JoinInMemoryBasedJoinFieldExecutorFactory
  */
 @Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -27,70 +27,58 @@ public @interface JoinInMemory {
      * A boolean value is excepted.
      * <p>
      * Exceptions will be thrown if the return value of the Expression is not a boolean.
+     * <p>
+     * This attribute is used in the grouping process if the {@link JoinInMemoryConfig#fieldProcessPolicy()} is set to GROUP.
      */
-    String filter() default "";
+    @Language("SpEL")
+    String sourceDataFilter() default "";
 
     /**
      * Using SpEL to extract the field value from the given source.
      * <p>
-     * Usage Example:
-     * <p>
-     * "#{user.id}" or "user.id"
+     * Usage Example: {@code user.id}
      *
      * @return SpEL expression of the key extracted from the given source
      */
+    @Language("SpEL")
     String keyFromSourceData();
-
-    /**
-     * Convert the source field value to a new value according
-     * to the SpEL expression given.
-     * Won't convert if it is empty.
-     * <p>
-     * In some cases, the type of the field in the entity
-     * is different from the type of the field defined in
-     * the source object.
-     * <p>
-     * Usage Example:
-     * <p>
-     * "#{ #root != null ? T(java.lang.Long).parseLong(#root) : null }"
-     *
-     * @return SpEL expression of the converted source field value. This value is used in
-     * the mapping process.
-     */
-    String sourceDataKeyConverter() default "";
 
     /**
      * Using SpEL to extract field value from the datasource.
      * Define using which field to construct a mapping relation.
      * <p>
-     * Usage Example:
-     * <p>
-     * "#{userId}"
+     * This attribute is used in the grouping process if the {@link JoinInMemoryConfig#fieldProcessPolicy()} is set to GROUP.
      *
      * @return SpEL expression of the field value retrieved from the datasource
      */
+    @Language("SpEL")
     String keyFromJoinData();
-
-    /**
-     * Same as the sourceDataKeyConverter()
-     * Won't convert if it is empty.
-     *
-     * @return SpEL expression of the converted field value extracted from the datasource
-     */
-    String joinDataKeyConverter() default "";
 
     /**
      * Define a method which takes one parameter contains all the values composed of keyFromSourceData()
      * and returns a list of values from the datasource.
-     * Eventually, the list will be converted into a joinDataKeyConverter keyed map.(Map<KEY,List<CONVERTED_OBJECT>>)
+     * Eventually, the list will be converted into a joinDataKeyConverter keyed map.({@code Map<KEY,List<CONVERTED_OBJECT>>})
      * <p>
-     * Usage example:
+     * Usage example: {@code userRepository.findAllById(#root)}
      * <p>
-     * "{@code userRepository.findAllById(#root)}"
+     * This attribute is used in the grouping process if the {@link JoinInMemoryConfig#fieldProcessPolicy()} is set to GROUP.
      *
-     * @return SpEL expression of the method that extracts the data from datasource
      */
+    @Language("SpEL")
     String loader();
+
+    /**
+     * Filter after join
+     * Reduce certain numbers of data to be processed.
+     * <p>
+     * A boolean value is excepted.
+     * <p>
+     * Exceptions will be thrown if the return value of the Expression is not a boolean.
+     * <p>
+     * This attribute is used in the grouping process if the {@link JoinInMemoryConfig#fieldProcessPolicy()} is set to GROUP.
+     */
+    @Language("SpEL")
+    String joinDataFilter() default "";
 
     /**
      * Define a method that takes one parameter,which is the object from the data source,
@@ -105,15 +93,18 @@ public @interface JoinInMemory {
      * <p>
      * Usage example:
      * <p>
-     * "#{#root.name}"
+     * {@code #this.name}
      *
      * @return SpEL expression of how to converter values from datasource if match the key value from the keyFromSourceData()
      */
+    @Language("SpEL")
     String joinDataConverter() default "";
 
     /**
      * Runlevel defines the task executing orders in
      * both parallel and serial executors.
+     * <p>
+     * This attribute is used in the grouping process if the {@link JoinInMemoryConfig#fieldProcessPolicy()} is set to GROUP.
      *
      * @return The default is fifth, which is in the middle.
      */

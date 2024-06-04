@@ -10,7 +10,7 @@ public enum JoinFieldProcessPolicy {
     SEPARATED,
     ;
 
-    public boolean isGrouped(){
+    public boolean isGrouped() {
         return Objects.equals(GROUPED, this);
     }
 }

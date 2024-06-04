@@ -13,4 +13,5 @@ public interface JoinFieldsExecutor<DATA> {
      * @param dataList 数据集合
      */
     void execute(Collection<DATA> dataList);
+
 }

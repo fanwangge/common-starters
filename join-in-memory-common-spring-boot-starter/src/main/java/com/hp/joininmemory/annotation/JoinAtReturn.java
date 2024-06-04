@@ -1,5 +1,7 @@
 package com.hp.joininmemory.annotation;
 
+import org.intellij.lang.annotations.Language;
+
 import java.lang.annotation.*;
 
 /**
@@ -18,6 +20,7 @@ public @interface JoinAtReturn {
      *
      * @return SpEL expression. (#{} format can be left out)
      */
+    @Language("SpEL")
     String value() default "";
 }
 

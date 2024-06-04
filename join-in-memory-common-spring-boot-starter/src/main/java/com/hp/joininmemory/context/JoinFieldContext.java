@@ -12,32 +12,24 @@ import java.util.Objects;
  */
 @Getter
 @Setter
-public class JoinFieldContext<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT> {
+public class JoinFieldContext<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT> {
 
-    private final AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT> executor;
+    private final AbstractJoinFieldV2Executor<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT> executor;
 
     private SOURCE_DATA sourceData;
-
-    private SOURCE_JOIN_KEY sourceJoinKey;
 
     private JOIN_KEY joinKey;
 
     private List<JOIN_DATA> joinData;
 
-    private DATA_JOIN_KEY dataJoinKey;
-
     private JOIN_RESULT joinResult;
 
     public JoinFieldContext(
-            AbstractJoinFieldV2Executor<SOURCE_DATA, SOURCE_JOIN_KEY, JOIN_KEY, JOIN_DATA, DATA_JOIN_KEY, JOIN_RESULT> executor,
+            AbstractJoinFieldV2Executor<SOURCE_DATA, JOIN_KEY, JOIN_DATA, JOIN_RESULT> executor,
             SOURCE_DATA sourceData
     ) {
         this.sourceData = sourceData;
         this.executor = executor;
-    }
-
-    public boolean notEmptySourceJoinKey() {
-        return Objects.nonNull(sourceJoinKey);
     }
 
     public boolean notEmptyJoinKey() {

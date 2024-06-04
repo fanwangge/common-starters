@@ -1,5 +1,6 @@
 package com.hp.joininmemory.annotation;
 
+import com.hp.joininmemory.support.JoinInMemoryBasedJoinFieldExecutorFactory;
 import com.hp.joininmemory.JoinInMemoryAutoConfiguration;
 import com.hp.joininmemory.constant.JoinFieldProcessPolicy;
 import com.hp.joininmemory.constant.JoinInMemoryExecutorType;
@@ -8,6 +9,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Field;
 
 
 /**
@@ -42,7 +44,9 @@ public @interface JoinInMemoryConfig {
      * <p>
      * Note:
      * <p>
-     * Make sure the class is already correctly registered as a Spring Bean.
+     * Make sure the instance is already correctly registered as a Spring Bean.
+     * <p>
+     * The default join executor service is {@link JoinInMemoryAutoConfiguration#defaultJoinInMemoryExecutor()}.
      *
      * @return the bean name of the defined executor service.
      */
@@ -58,11 +62,13 @@ public @interface JoinInMemoryConfig {
      * Since fields defined in the {@code @JoinInMemory} can be
      * overridden freely, {@code JoinFieldProcessPolicy.GROUPED}
      * will only combine those fields annotated with the same
-     * join-annotation which has the same {@code JoinInMemory.runLevel()}
-     * value and the same {@code JoinInMemory.loader()} value.
+     * join-annotation which has the same value.
      * <p>
-     * By default, GROUPED.
+     * Attributes used to determine groups: {@link JoinInMemoryBasedJoinFieldExecutorFactory#groupBy(Class, Field, JoinInMemory)}
+     *
+     * <p>
+     * By default, SEPARATED.
      */
-    JoinFieldProcessPolicy fieldProcessPolicy() default JoinFieldProcessPolicy.GROUPED;
+    JoinFieldProcessPolicy fieldProcessPolicy() default JoinFieldProcessPolicy.SEPARATED;
 
 }

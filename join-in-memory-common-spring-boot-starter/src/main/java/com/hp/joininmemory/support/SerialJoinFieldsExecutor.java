@@ -1,7 +1,7 @@
 package com.hp.joininmemory.support;
 
-import com.hp.joininmemory.AfterJoinMethodExecutor;
 import com.hp.joininmemory.JoinFieldExecutor;
+import com.hp.joininmemory.AfterJoinMethodExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StopWatch;
 
@@ -25,10 +25,12 @@ public class SerialJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor<D
 
     @Override
     public void execute(Collection<DATA> dataList) {
-        getJoinFieldExecutors()
+        final List<JoinFieldExecutor<DATA>> executors = getJoinFieldExecutors()
                 .stream()
                 .sorted(Comparator.comparing(JoinFieldExecutor::runOnLevel))
-                .forEach(executor -> {
+                .toList();
+
+        executors.forEach(executor -> {
                     if (log.isDebugEnabled()) {
                         StopWatch stopwatch = new StopWatch("Starting executing join tasks");
                         stopwatch.start();

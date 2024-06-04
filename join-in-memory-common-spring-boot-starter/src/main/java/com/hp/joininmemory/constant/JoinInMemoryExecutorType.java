@@ -6,8 +6,12 @@ package com.hp.joininmemory.constant;
  */
 
 public enum JoinInMemoryExecutorType {
-    /**并行*/
+    /**
+     * 并行
+     */
     PARALLEL,
-    /**串行*/
+    /**
+     * 串行
+     */
     SERIAL
 }

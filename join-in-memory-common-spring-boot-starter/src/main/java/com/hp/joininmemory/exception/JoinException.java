@@ -2,13 +2,16 @@ package com.hp.joininmemory.exception;
 
 import lombok.Getter;
 
+import java.io.Serial;
+
 /**
  * @author hp
  */
 @Getter
 public class JoinException extends RuntimeException {
 
-    private static final long serialVersionUID = -2290173202494060253L;
+    @Serial
+    private static final long serialVersionUID = -5670297424930807844L;
 
     private final JoinErrorCode code;
 

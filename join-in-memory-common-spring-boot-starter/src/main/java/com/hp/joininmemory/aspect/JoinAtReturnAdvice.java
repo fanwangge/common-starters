@@ -1,6 +1,7 @@
 package com.hp.joininmemory.aspect;
 
 import cn.hutool.core.util.StrUtil;
+import com.hp.common.base.utils.SpELHelper;
 import com.hp.joininmemory.JoinService;
 import com.hp.joininmemory.annotation.JoinAtReturn;
 import lombok.RequiredArgsConstructor;
@@ -11,13 +12,10 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.expression.*;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.function.Function;
+import java.util.Objects;
 
 /**
  * @author hp
@@ -29,10 +27,8 @@ import java.util.function.Function;
 public class JoinAtReturnAdvice {
 
     private final JoinService joinService;
-    private final BeanResolver beanResolver;
-    private final ExpressionParser expressionParser = new SpelExpressionParser();
-    private final ParserContext parserContext = ParserContext.TEMPLATE_EXPRESSION;
 
+    private final SpELHelper spELHelper;
 
     @Pointcut(value = "@annotation(com.hp.joininmemory.annotation.JoinAtReturn)")
     public void joinAtReturn() {
@@ -45,40 +41,20 @@ public class JoinAtReturnAdvice {
             final Method method = methodSignature.getMethod();
             final JoinAtReturn joinAtReturn = method.getAnnotation(JoinAtReturn.class);
             Object joinData = returnValue;
+            if (Objects.isNull(joinData)) {
+                return;
+            }
             if (StrUtil.isNotEmpty(joinAtReturn.value())) {
-                final DataGetter<Object, Object> returnValueGetter = new DataGetter<>(joinAtReturn.value());
-                joinData = returnValueGetter.apply(returnValue);
+                joinData = spELHelper.newGetterInstance(joinAtReturn.value()).apply(returnValue);
+            }
+            if (Objects.isNull(joinData)) {
+                return;
             }
             if (Collection.class.isAssignableFrom(joinData.getClass())) {
                 joinService.joinInMemory((Collection<?>) joinData);
             } else {
                 joinService.joinInMemory(joinData);
             }
-        }
-    }
-
-    private class DataGetter<T, R> implements Function<T, R> {
-        private final Expression expression;
-        private final EvaluationContext evaluationContext;
-
-        private DataGetter(String expStr) {
-            if (StrUtil.isNotEmpty(expStr) && expStr.startsWith(parserContext.getExpressionPrefix())) {
-                this.expression = expressionParser.parseExpression(expStr, parserContext);
-            } else {
-                this.expression = expressionParser.parseExpression(expStr);
-            }
-            final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
-            evaluationContext.setBeanResolver(beanResolver);
-            this.evaluationContext = evaluationContext;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public R apply(Object data) {
-            if (data == null) {
-                return null;
-            }
-            return (R) expression.getValue(evaluationContext, data);
         }
     }
 }

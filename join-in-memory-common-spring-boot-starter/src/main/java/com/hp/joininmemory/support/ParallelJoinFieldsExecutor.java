@@ -1,12 +1,11 @@
 package com.hp.joininmemory.support;
 
-import com.hp.joininmemory.AfterJoinMethodExecutor;
 import com.hp.joininmemory.JoinFieldExecutor;
 import com.hp.joininmemory.exception.ExceptionNotifier;
 import com.hp.joininmemory.exception.JoinErrorCode;
 import com.hp.joininmemory.exception.JoinException;
+import com.hp.joininmemory.AfterJoinMethodExecutor;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StopWatch;
 
@@ -25,8 +24,8 @@ import java.util.stream.Collectors;
 public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor<DATA> {
 
     private final ExecutorService executorService;
-    private final List<JoinExecutorWithLevel> joinExecutorWithLevels;
-    private final List<AfterJoinExecutorWithLevel> afterJoinExecutorWithLevels;
+    private final List<JoinExecutorWithLevel<DATA>> joinExecutorWithLevels;
+    private final List<AfterJoinExecutorWithLevel<DATA>> afterJoinExecutorWithLevels;
     private final ExceptionNotifier joinExceptionNotifier;
     private final ExceptionNotifier afterJoinExceptionNotifier;
 
@@ -45,25 +44,25 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
         this.afterJoinExceptionNotifier = afterJoinExceptionNotifier;
     }
 
-    private List<JoinExecutorWithLevel> buildJoinExecutorWithLevel() {
+    private List<JoinExecutorWithLevel<DATA>> buildJoinExecutorWithLevel() {
         return getJoinFieldExecutors()
                 .stream()
                 .collect(Collectors.groupingBy(JoinFieldExecutor::runOnLevel))
                 .entrySet()
                 .stream()
-                .map(entry -> new JoinExecutorWithLevel(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(JoinExecutorWithLevel::getLevel))
+                .map(entry -> new JoinExecutorWithLevel<>(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(JoinExecutorWithLevel::level))
                 .collect(Collectors.toList());
     }
 
-    private List<AfterJoinExecutorWithLevel> buildAfterJoinExecutorWithLevel() {
+    private List<AfterJoinExecutorWithLevel<DATA>> buildAfterJoinExecutorWithLevel() {
         return getAfterJoinMethodExecutors()
                 .stream()
                 .collect(Collectors.groupingBy(AfterJoinMethodExecutor::runOnLevel))
                 .entrySet()
                 .stream()
-                .map(entry -> new AfterJoinExecutorWithLevel(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(AfterJoinExecutorWithLevel::getLevel))
+                .map(entry -> new AfterJoinExecutorWithLevel<>(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(AfterJoinExecutorWithLevel::level))
                 .collect(Collectors.toList());
     }
 
@@ -75,7 +74,7 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
 
     private void executeJoinTasks(Collection<DATA> dataList) {
         this.joinExecutorWithLevels.forEach(leveledTasks -> {
-            log.debug("run join on level {} use {}", leveledTasks.getLevel(), leveledTasks.getJoinFieldExecutors());
+            log.debug("run join on level {} use {}", leveledTasks.level(), leveledTasks.joinFieldExecutors());
             final List<Task> tasks = buildJoinTasks(leveledTasks, dataList);
             try {
                 if (log.isDebugEnabled()) {
@@ -95,8 +94,7 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
 
     private void executeAfterJoinTasks(Collection<DATA> dataList) {
         afterJoinExecutorWithLevels.forEach(leveled -> {
-            final AfterJoinExecutorWithLevel leveled1 = leveled;
-            final List<Task> afterJoinTasks = dataList.stream().flatMap(data -> buildAfterJoinTasks(leveled1, data).stream()).collect(Collectors.toList());
+            final List<Task> afterJoinTasks = dataList.stream().flatMap(data -> buildAfterJoinTasks(leveled, data).stream()).collect(Collectors.toList());
             try {
                 if (log.isDebugEnabled()) {
                     StopWatch stopwatch = new StopWatch("Starting executing after join tasks");
@@ -115,21 +113,20 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
     }
 
     @SuppressWarnings("unchecked")
-    private List<Task> buildJoinTasks(JoinExecutorWithLevel leveledExecutors, Collection<DATA> dataList) {
-        return leveledExecutors.getJoinFieldExecutors()
+    private List<Task> buildJoinTasks(JoinExecutorWithLevel<DATA> leveledExecutors, Collection<DATA> dataList) {
+        return leveledExecutors.joinFieldExecutors()
                 .stream()
                 .map(executor -> new Task(data -> executor.execute((Collection<DATA>) data), dataList, joinExceptionNotifier))
                 .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
-    private List<Task> buildAfterJoinTasks(AfterJoinExecutorWithLevel leveledExecutors, DATA data) {
-        return leveledExecutors.getAfterJoinMethodExecutors()
+    private List<Task> buildAfterJoinTasks(AfterJoinExecutorWithLevel<DATA> leveledExecutors, DATA data) {
+        return leveledExecutors.afterJoinMethodExecutors()
                 .stream()
                 .map(executor -> new Task(d -> executor.execute((DATA) d), data, afterJoinExceptionNotifier))
                 .collect(Collectors.toList());
     }
-
 
     @AllArgsConstructor
     static class Task implements Callable<Void> {
@@ -149,18 +146,10 @@ public class ParallelJoinFieldsExecutor<DATA> extends AbstractJoinFieldsExecutor
         }
     }
 
-    @AllArgsConstructor
-    @Getter
-    class JoinExecutorWithLevel {
-        private final Integer level;
-        private final List<JoinFieldExecutor<DATA>> joinFieldExecutors;
+    record JoinExecutorWithLevel<DATA>(Integer level, List<JoinFieldExecutor<DATA>> joinFieldExecutors) {
     }
 
-    @AllArgsConstructor
-    @Getter
-    class AfterJoinExecutorWithLevel {
-        private final Integer level;
-        private final List<AfterJoinMethodExecutor<DATA>> afterJoinMethodExecutors;
+    record AfterJoinExecutorWithLevel<DATA>(Integer level, List<AfterJoinMethodExecutor<DATA>> afterJoinMethodExecutors) {
     }
 
 }
